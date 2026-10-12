@@ -64,10 +64,10 @@ async def send_dynamic_welcome(channel, member, interaction=None):
         output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
         output.paste(avatar_img, (0, 0), mask=mask)
 
-        # 3. الحجم المكبر (360) كما هو
-        avatar_resized = output.resize((360, 360), Image.Resampling.LANCZOS)
+        # 3. تم تكبير الحجم أكثر لملء الدائرة تماماً (380)
+        avatar_resized = output.resize((380, 380), Image.Resampling.LANCZOS)
 
-        # 4. تم سحب الصورة يساراً إلى 650 وثبات الارتفاع على 190
+        # 4. الإحداثيات المضبوطة (X=650, Y=190)
         position = (650, 190)
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
