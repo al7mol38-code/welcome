@@ -14,80 +14,73 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
-# اسم ملف صورتك في مجلد المشروع على قيت هب
-LOCAL_BACKGROUND_IMAGE = "background.png"
-
+# الرابط المباشر الثابت والمستقر لصورة FARM OF LEGENDS
+BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png" # رابط مباشر دائم ومستقر لصورتك
 
 @bot.event
 async def on_ready():
-  print(f"تم تسجيل الدخول بنجاح باسم: {bot.user.name}")
-  try:
-    synced = await bot.tree.sync()
-    print(f"تم مزامنة {len(synced)} من الأوامر بنجاح.")
-  except Exception as e:
-    print(f"خطأ في مزامنة الأوامر: {e}")
-
+    print(f"تم تسجيل الدخول بنجاح باسم: {bot.user.name}")
+    try:
+        synced = await bot.tree.sync()
+        print(f"تم مزامنة {len(synced)} من الأوامر بنجاح.")
+    except Exception as e:
+        print(f"خطأ في مزامنة الأوامر: {e}")
 
 @bot.event
 async def on_member_join(member):
-  channel = bot.get_channel(WELCOME_CHANNEL_ID)
-  if channel is not None:
-    await send_dynamic_welcome(channel, member)
-
+    channel = bot.get_channel(WELCOME_CHANNEL_ID)
+    if channel is not None:
+        await send_dynamic_welcome(channel, member)
 
 @bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والدائرة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
-  await interaction.response.defer(thinking=True)
-
-  channel = bot.get_channel(WELCOME_CHANNEL_ID)
-  if channel is None:
-    channel = interaction.channel
-
-  await send_dynamic_welcome(channel, interaction.user)
-  await interaction.followup.send(
-      "تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True
-  )
-
+    await interaction.response.defer(thinking=True)
+    
+    channel = bot.get_channel(WELCOME_CHANNEL_ID)
+    if channel is None:
+        channel = interaction.channel
+        
+    await send_dynamic_welcome(channel, interaction.user)
+    await interaction.followup.send("تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True)
 
 async def send_dynamic_welcome(channel, member):
-  temp_filename = f"welcome_{member.id}.png"
-  try:
-    # 1. التحقق من وجود ملف الخلفية محلياً وفتحه
-    if not os.path.exists(LOCAL_BACKGROUND_IMAGE):
-      raise Exception(f"ملف الخلفية '{LOCAL_BACKGROUND_IMAGE}' غير موجود في مجلد المشروع على قيت هب!")
-    
-    base_image = Image.open(LOCAL_BACKGROUND_IMAGE).convert("RGBA")
+    temp_filename = f"welcome_{member.id}.png"
+    try:
+        # 1. تحميل الصورة الأساسية من الرابط المباشر الثابت
+        base_response = requests.get(BASE_IMAGE_URL, timeout=15)
+        if base_response.status_code != 200:
+            raise Exception("فشل تحميل الصورة الأساسية")
+        base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
 
-    # 2. تحميل صورة بروفايل العضو
-    avatar_url = member.display_avatar.replace(size=256, format="png").url
-    avatar_response = requests.get(avatar_url, timeout=10)
-    if avatar_response.status_code != 200:
-      raise Exception("فشل تحميل صورة بروفايل العضو")
-    
-    avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
+        # 2. تحميل صورة بروفايل العضو
+        avatar_url = member.display_avatar.replace(size=256, format="png").url
+        avatar_response = requests.get(avatar_url, timeout=10)
+        if avatar_response.status_code != 200:
+            raise Exception("فشل تحميل صورة بروفايل العضو")
+            
+        avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
-    # 3. قص الصورة على شكل دائرة متناسقة
-    mask = Image.new("L", avatar_img.size, 0)
-    draw_mask = Image.Draw(mask)
-    draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
+        # 3. قص الصورة على شكل دائرة متناسقة
+        mask = Image.new("L", avatar_img.size, 0)
+        draw_mask = Image.Draw(mask)
+        draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
 
-    output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
-    output.paste(avatar_img, (0, 0), mask=mask)
+        output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
+        output.paste(avatar_img, (0, 0), mask=mask)
 
-    # تغيير حجم الصورة لتتناسب بدقة مع إحداثيات الدائرة الخضراء في التصميم
-    avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
+        avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-    # إحداثيات مركز الدائرة في صورتك الأصلية
-    position = (523, 120)
-    working_image = base_image.copy()
-    working_image.paste(avatar_resized, position, avatar_resized)
+        # 4. دمج صورة العضو في مركز الدائرة الخضراء تماماً
+        position = (523, 120)
+        working_image = base_image.copy()
+        working_image.paste(avatar_resized, position, avatar_resized)
 
-    # 5. حفظ الصورة المؤقتة الناتجة
-    working_image.save(temp_filename)
+        # 5. حفظ الصورة المؤقتة
+        working_image.save(temp_filename)
 
-    # 6. النص الترحيمي الاحترافي
-    welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
+        # 6. النص الترحيمي
+        welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
 
 رجاء قراءة القوانين والالتزام بها 🛑 <#1533463893890957474>
 
@@ -106,33 +99,30 @@ async def send_dynamic_welcome(channel, member):
 
 واي سؤال او شكوى او شيء افتح تذكرة والاداريين مايقصرون معك باذن الله <#1533464055325528168>"""
 
-    file = discord.File(temp_filename)
-    embed = discord.Embed(
-        title="🎉 مرحباً بك في السيرفر!",
-        description=welcome_description,
-        color=discord.Color.green(),
-    )
-    embed.set_image(url=f"attachment://{temp_filename}")
-    embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends")
+        file = discord.File(temp_filename)
+        embed = discord.Embed(
+            title="🎉 مرحباً بك في السيرفر!",
+            description=welcome_description,
+            color=discord.Color.green()
+        )
+        embed.set_image(url=f"attachment://{temp_filename}")
+        embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends")
 
-    await channel.send(embed=embed, file=file)
+        await channel.send(embed=embed, file=file)
 
-  except Exception as e:
-    print(f"خطأ تفصيلي في معالجة الصورة: {e}")
-    await channel.send(
-        f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})"
-    )
-
-  finally:
-    if os.path.exists(temp_filename):
-      try:
-        os.remove(temp_filename)
-      except:
-        pass
-
+    except Exception as e:
+        print(f"خطأ تفصيلي في معالجة الصورة: {e}")
+        await channel.send(f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})")
+        
+    finally:
+        if os.path.exists(temp_filename):
+            try:
+                os.remove(temp_filename)
+            except:
+                pass
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if TOKEN:
-  bot.run(TOKEN)
+    bot.run(TOKEN)
 else:
-  print("خطأ: لم يتم العثور على توكن البوت.")
+    print("خطأ: لم يتم العثور على توكن البوت.")
