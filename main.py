@@ -14,10 +14,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
-# تأكد أن هذا الرابط المباشر للصورة تعمل بشكل صحيح ويمكن فتحه في المتصفح
-BASE_IMAGE_URL = (
-    "https://r2.erweima.ai/ai_image/46472330f3124e5ca07e94239111fb82.png"
-)
+# رابط صورتك المباشر من ديسكورد
+BASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1533469148493906002/1559337458922033172/35B0B5E7-6C79-41FD-8994-0CB0D27C63AA.png?ex=6aceb5ad&is=6acd642d&hm=527bfe602cce82367f7364f9cecdbfe732ac5c011f369a952b8fcb29dd7be67e&"
 
 
 @bot.event
@@ -55,8 +53,8 @@ async def test_welcome_slash(interaction: discord.Interaction):
 async def send_dynamic_welcome(channel, member):
   temp_filename = f"welcome_{member.id}.png"
   try:
-    # 1. تحميل الصورة الأساسية في كل مرة لضمان عدم تلفها
-    base_response = requests.get(BASE_IMAGE_URL, timeout=10)
+    # 1. تحميل الصورة الأساسية من رابط ديسكورد
+    base_response = requests.get(BASE_IMAGE_URL, timeout=15)
     if base_response.status_code != 200:
       raise Exception("فشل تحميل الصورة الأساسية من الرابط")
     base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
@@ -64,6 +62,9 @@ async def send_dynamic_welcome(channel, member):
     # 2. تحميل صورة بروفايل العضو
     avatar_url = member.display_avatar.replace(size=256, format="png").url
     avatar_response = requests.get(avatar_url, timeout=10)
+    if avatar_response.status_code != 200:
+      raise Exception("فشل تحميل صورة بروفايل العضو")
+
     avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
     # 3. قص الصورة على شكل دائرة
@@ -76,7 +77,7 @@ async def send_dynamic_welcome(channel, member):
 
     avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-    # 4. دمج صورة العضو في الإحداثيات المحددة
+    # 4. دمج صورة العضو في الإحداثيات المحددة داخل الدائرة
     position = (523, 120)
     working_image = base_image.copy()
     working_image.paste(avatar_resized, position, avatar_resized)
@@ -117,13 +118,11 @@ async def send_dynamic_welcome(channel, member):
 
   except Exception as e:
     print(f"خطأ تفصيلي في معالجة الصورة: {e}")
-    # إرسال رسالة توضح سبب الخطأ بدقة لتسهيل الحل
     await channel.send(
         f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})"
     )
 
   finally:
-    # تنظيف الملف المؤقت لكي لا يمتلئ السيرفر
     if os.path.exists(temp_filename):
       try:
         os.remove(temp_filename)
