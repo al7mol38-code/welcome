@@ -34,7 +34,6 @@ async def on_member_join(member):
 @bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والدائرة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
-    # الرد الفوري لمنع انتهاء المهلة وخطأ Unknown interaction
     await interaction.response.defer(thinking=True, ephemeral=True)
     
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
@@ -60,7 +59,7 @@ async def send_dynamic_welcome(channel, member, interaction=None):
             
         avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
-        # 3. قص الصورة على شكل دائرة متناسقة
+        # 3. قص الصورة على شكل دائرة
         mask = Image.new("L", avatar_img.size, 0)
         draw_mask = ImageDraw.Draw(mask)
         draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
@@ -68,14 +67,16 @@ async def send_dynamic_welcome(channel, member, interaction=None):
         output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
         output.paste(avatar_img, (0, 0), mask=mask)
 
+        # تغيير حجم الصورة لتتناسب مع الدائرة
         avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-        # 4. دمج صورة العضو في مركز الدائرة الخضراء تماماً
-        position = (523, 120)
+        # 4. دمج الصورة (تم تغيير الإحداثيات إلى اليسار قليلاً للتوسيط الدقيق)
+        # الأصل كانت (523, 120)، قمنا بتحريكها لليسار (نقصنا من قيمة X) لتتوسط الدائرة الخضراء
+        position = (503, 120) # جرب هذه الإحداثيات أولاً
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
 
-        # 5. حفظ الصورة المؤقتة
+        # 5. حفظ الصورة
         working_image.save(temp_filename)
 
         # 6. النص الترحيمي
@@ -107,10 +108,8 @@ async def send_dynamic_welcome(channel, member, interaction=None):
         embed.set_image(url=f"attachment://{temp_filename}")
         embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends")
 
-        # إرسال الرسالة للروم المحدد
         await channel.send(embed=embed, file=file)
         
-        # إذا تم استدعاء الأمر عبر تفاعل (Slash Command)، أكمل الرد الخاص به
         if interaction:
             await interaction.followup.send("تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True)
 
