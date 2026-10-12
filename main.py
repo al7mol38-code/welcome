@@ -66,8 +66,8 @@ async def send_dynamic_welcome(channel, member, interaction=None):
 
         avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-        # 4. تم مضاعفة الإحداثيات لليمين بشكل كبير (800)
-        position = (800, 120)
+        # 4. تم رفع الإحداثيات إلى 1500 لضمان الحركة الكبيرة لليمين
+        position = (1500, 120)
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
 
