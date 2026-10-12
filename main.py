@@ -7,36 +7,22 @@ from discord.ext import commands
 from PIL import Image
 import requests
 
-# إعدادات البوت
 intents = discord.Intents.default()
-intents.members = True  # مهم جداً للترحيب
-intents.message_content = (
-    True  # تم تفعيله لقراءة الرسائل والأوامر بشكل احتياطي
-)
+intents.members = True
+intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# آيدي روم الترحيب والتجربة
 WELCOME_CHANNEL_ID = 1533469148493906002
-# رابط الصورة الأساسية
+# تأكد أن هذا الرابط المباشر للصورة تعمل بشكل صحيح ويمكن فتحه في المتصفح
 BASE_IMAGE_URL = (
     "https://r2.erweima.ai/ai_image/46472330f3124e5ca07e94239111fb82.png"
 )
-base_image = None
 
 
 @bot.event
 async def on_ready():
-  global base_image
   print(f"تم تسجيل الدخول بنجاح باسم: {bot.user.name}")
-  try:
-    response = requests.get(BASE_IMAGE_URL)
-    base_image = Image.open(BytesIO(response.content)).convert("RGBA")
-    print("تم تحميل الصورة الأساسية بنجاح.")
-  except Exception as e:
-    print(f"خطأ في تحميل الصورة الأساسية: {e}")
-
-  # مزامنة الأوامر السلاش (Slash Commands) مع ديسكورد
   try:
     synced = await bot.tree.sync()
     print(f"تم مزامنة {len(synced)} من الأوامر بنجاح.")
@@ -51,13 +37,10 @@ async def on_member_join(member):
     await send_dynamic_welcome(channel, member)
 
 
-# أمر سلاش جديد: /تجربة (اكتبه في أي روم وسيظهر لك فوراً)
 @bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والصورة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
-  await interaction.response.defer(
-      thinking=True
-  )  # إخبار ديسكورد بأن البوت يعالج الطلب
+  await interaction.response.defer(thinking=True)
 
   channel = bot.get_channel(WELCOME_CHANNEL_ID)
   if channel is None:
@@ -70,11 +53,20 @@ async def test_welcome_slash(interaction: discord.Interaction):
 
 
 async def send_dynamic_welcome(channel, member):
+  temp_filename = f"welcome_{member.id}.png"
   try:
-    avatar_url = member.display_avatar.replace(size=256, format="png").url
-    response = requests.get(avatar_url)
-    avatar_img = Image.open(BytesIO(response.content)).convert("RGBA")
+    # 1. تحميل الصورة الأساسية في كل مرة لضمان عدم تلفها
+    base_response = requests.get(BASE_IMAGE_URL, timeout=10)
+    if base_response.status_code != 200:
+      raise Exception("فشل تحميل الصورة الأساسية من الرابط")
+    base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
 
+    # 2. تحميل صورة بروفايل العضو
+    avatar_url = member.display_avatar.replace(size=256, format="png").url
+    avatar_response = requests.get(avatar_url, timeout=10)
+    avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
+
+    # 3. قص الصورة على شكل دائرة
     mask = Image.new("L", avatar_img.size, 0)
     draw_mask = Image.Draw(mask)
     draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
@@ -83,14 +75,16 @@ async def send_dynamic_welcome(channel, member):
     output.paste(avatar_img, (0, 0), mask=mask)
 
     avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
-    position = (523, 120)
 
+    # 4. دمج صورة العضو في الإحداثيات المحددة
+    position = (523, 120)
     working_image = base_image.copy()
     working_image.paste(avatar_resized, position, avatar_resized)
 
-    temp_filename = f"welcome_{member.id}.png"
+    # 5. حفظ الصورة المؤقتة
     working_image.save(temp_filename)
 
+    # 6. النص الترحيمي
     welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
 
 رجاء قراءة القوانين والالتزام بها 🛑 <#1533463893890957474>
@@ -121,15 +115,20 @@ async def send_dynamic_welcome(channel, member):
 
     await channel.send(embed=embed, file=file)
 
-    await asyncio.sleep(1)
-    if os.path.exists(temp_filename):
-      os.remove(temp_filename)
-
   except Exception as e:
-    print(f"خطأ في إنشاء الترحيب الديناميكي: {e}")
+    print(f"خطأ تفصيلي في معالجة الصورة: {e}")
+    # إرسال رسالة توضح سبب الخطأ بدقة لتسهيل الحل
     await channel.send(
-        f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة)"
+        f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})"
     )
+
+  finally:
+    # تنظيف الملف المؤقت لكي لا يمتلئ السيرفر
+    if os.path.exists(temp_filename):
+      try:
+        os.remove(temp_filename)
+      except:
+        pass
 
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -137,3 +136,4 @@ if TOKEN:
   bot.run(TOKEN)
 else:
   print("خطأ: لم يتم العثور على توكن البوت.")
+    
