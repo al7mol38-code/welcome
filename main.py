@@ -66,9 +66,8 @@ async def send_dynamic_welcome(channel, member, interaction=None):
 
         avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-        # 4. دمج الصورة (تم ضبط الإحداثيات إلى اليمين قليلاً للتوسيط الدقيق: 513)
-        # الرقم الأول (513) يتحرك لليمين بزيادته، ولليسار بنقصانه.
-        position = (513, 120)
+        # 4. تم تحريك الصورة أكثر لليمين (535)
+        position = (535, 120)
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
 
