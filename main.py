@@ -14,8 +14,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
-# الرابط المباشر الثابت والمستقر لصورة FARM OF LEGENDS
-BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png"
+# الرابط المباشر الصحيح والنظيف لصورة FARM OF LEGENDS
+BASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1533469148493906002/1559337458922033172/35B0B5E7-6C79-41FD-8994-0CB0D27C63AA.png?ex=6aceb5ad&is=6acd642d&hm=527bfe602cce82367f7364f9cecdbfe732ac5c011f369a952b8fcb29dd7be67e&"
 
 @bot.event
 async def on_ready():
@@ -47,7 +47,7 @@ async def test_welcome_slash(interaction: discord.Interaction):
 async def send_dynamic_welcome(channel, member):
     temp_filename = f"welcome_{member.id}.png"
     try:
-        # 1. تحميل الصورة الأساسية من الرابط المباشر الثابت
+        # 1. تحميل الصورة الأساسية من الرابط المباشر
         base_response = requests.get(BASE_IMAGE_URL, timeout=15)
         if base_response.status_code != 200:
             raise Exception("فشل تحميل الصورة الأساسية")
