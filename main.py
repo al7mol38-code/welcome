@@ -45,13 +45,11 @@ async def test_welcome_slash(interaction: discord.Interaction):
 async def send_dynamic_welcome(channel, member, interaction=None):
     temp_filename = f"welcome_{member.id}.png"
     try:
-        # 1. تحميل الصورة الأساسية
         base_response = requests.get(BASE_IMAGE_URL, timeout=15)
         if base_response.status_code != 200:
             raise Exception("فشل تحميل الصورة الأساسية")
         base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
 
-        # 2. تحميل صورة بروفايل العضو
         avatar_url = member.display_avatar.replace(size=256, format="png").url
         avatar_response = requests.get(avatar_url, timeout=10)
         if avatar_response.status_code != 200:
@@ -59,7 +57,6 @@ async def send_dynamic_welcome(channel, member, interaction=None):
             
         avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
-        # 3. قص الصورة على شكل دائرة
         mask = Image.new("L", avatar_img.size, 0)
         draw_mask = ImageDraw.Draw(mask)
         draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
@@ -67,19 +64,16 @@ async def send_dynamic_welcome(channel, member, interaction=None):
         output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
         output.paste(avatar_img, (0, 0), mask=mask)
 
-        # تغيير حجم الصورة لتتناسب مع الدائرة
         avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-        # 4. دمج الصورة (تم تغيير الإحداثيات إلى اليسار قليلاً للتوسيط الدقيق)
-        # الأصل كانت (523, 120)، قمنا بتحريكها لليسار (نقصنا من قيمة X) لتتوسط الدائرة الخضراء
-        position = (503, 120) # جرب هذه الإحداثيات أولاً
+        # 4. دمج الصورة (تم ضبط الإحداثيات إلى اليمين قليلاً للتوسيط الدقيق: 513)
+        # الرقم الأول (513) يتحرك لليمين بزيادته، ولليسار بنقصانه.
+        position = (513, 120)
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
 
-        # 5. حفظ الصورة
         working_image.save(temp_filename)
 
-        # 6. النص الترحيمي
         welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
 
 رجاء قراءة القوانين والالتزام بها 🛑 <#1533463893890957474>
