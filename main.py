@@ -14,8 +14,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
-# الرابط المباشر الثابت للصورة من قيت هب
-BASE_IMAGE_URL = "https://raw.githubusercontent.com/al7mol38-code/welcome/main/background.png"
+# اسم ملف صورتك في مجلد المشروع على قيت هب
+LOCAL_BACKGROUND_IMAGE = "background.png"
 
 
 @bot.event
@@ -35,7 +35,7 @@ async def on_member_join(member):
     await send_dynamic_welcome(channel, member)
 
 
-@bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والصورة")
+@bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والدائرة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
   await interaction.response.defer(thinking=True)
@@ -53,21 +53,21 @@ async def test_welcome_slash(interaction: discord.Interaction):
 async def send_dynamic_welcome(channel, member):
   temp_filename = f"welcome_{member.id}.png"
   try:
-    # 1. تحميل الصورة الأساسية من قيت هب
-    base_response = requests.get(BASE_IMAGE_URL, timeout=15)
-    if base_response.status_code != 200:
-      raise Exception("فشل تحميل الصورة الأساسية من قيت هب")
-    base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
+    # 1. التحقق من وجود ملف الخلفية محلياً وفتحه
+    if not os.path.exists(LOCAL_BACKGROUND_IMAGE):
+      raise Exception(f"ملف الخلفية '{LOCAL_BACKGROUND_IMAGE}' غير موجود في مجلد المشروع على قيت هب!")
+    
+    base_image = Image.open(LOCAL_BACKGROUND_IMAGE).convert("RGBA")
 
     # 2. تحميل صورة بروفايل العضو
     avatar_url = member.display_avatar.replace(size=256, format="png").url
     avatar_response = requests.get(avatar_url, timeout=10)
     if avatar_response.status_code != 200:
       raise Exception("فشل تحميل صورة بروفايل العضو")
-
+    
     avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
-    # 3. قص الصورة على شكل دائرة
+    # 3. قص الصورة على شكل دائرة متناسقة
     mask = Image.new("L", avatar_img.size, 0)
     draw_mask = Image.Draw(mask)
     draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
@@ -75,17 +75,18 @@ async def send_dynamic_welcome(channel, member):
     output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
     output.paste(avatar_img, (0, 0), mask=mask)
 
+    # تغيير حجم الصورة لتتناسب بدقة مع إحداثيات الدائرة الخضراء في التصميم
     avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-    # 4. دمج صورة العضو في الإحداثيات المحددة داخل الدائرة
+    # إحداثيات مركز الدائرة في صورتك الأصلية
     position = (523, 120)
     working_image = base_image.copy()
     working_image.paste(avatar_resized, position, avatar_resized)
 
-    # 5. حفظ الصورة المؤقتة
+    # 5. حفظ الصورة المؤقتة الناتجة
     working_image.save(temp_filename)
 
-    # 6. النص الترحيمي
+    # 6. النص الترحيمي الاحترافي
     welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
 
 رجاء قراءة القوانين والالتزام بها 🛑 <#1533463893890957474>
@@ -109,10 +110,10 @@ async def send_dynamic_welcome(channel, member):
     embed = discord.Embed(
         title="🎉 مرحباً بك في السيرفر!",
         description=welcome_description,
-        color=discord.Color.blue(),
+        color=discord.Color.green(),
     )
     embed.set_image(url=f"attachment://{temp_filename}")
-    embed.set_footer(text=f"رقم العضو: {member.id} | ترحيب تفاعلي")
+    embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends")
 
     await channel.send(embed=embed, file=file)
 
