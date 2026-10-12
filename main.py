@@ -13,7 +13,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-WELCOME_CHANNEL_ID = 1533469148493906002
+# تم تحديث آي دي روم الترحيب الجديد
+WELCOME_CHANNEL_ID = 1533463896118001838
 BASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1533469148493906002/1559337458922033172/35B0B5E7-6C79-41FD-8994-0CB0D27C63AA.png?ex=6aceb5ad&is=6acd642d&hm=527bfe602cce82367f7364f9cecdbfe732ac5c011f369a952b8fcb29dd7be67e&"
 
 @bot.event
@@ -25,12 +26,14 @@ async def on_ready():
     except Exception as e:
         print(f"خطأ في مزامنة الأوامر: {e}")
 
+# الحدث التلقائي: يعمل عند دخول أي شخص جديد للسيرفر ويرسل في الروم الجديد
 @bot.event
 async def on_member_join(member):
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel is not None:
         await send_dynamic_welcome(channel, member)
 
+# أمر تجريبي للاختبار اليدوي
 @bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والدائرة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
@@ -64,48 +67,54 @@ async def send_dynamic_welcome(channel, member, interaction=None):
         output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
         output.paste(avatar_img, (0, 0), mask=mask)
 
-        # 3. تم تكبير الحجم أكثر لملء الدائرة تماماً (380)
         avatar_resized = output.resize((380, 380), Image.Resampling.LANCZOS)
-
-        # 4. الإحداثيات المضبوطة (X=650, Y=190)
         position = (650, 190)
+        
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
 
         working_image.save(temp_filename)
 
-        welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
+        welcome_description = f"""### 🌟 حياك الله {member.mention} في سيرفرنا! 🌟
 
-رجاء قراءة القوانين والالتزام بها 🛑 <#1533463893890957474>
+> **نورتنا يا بطل، نتمنى لك قضاء أمتع الأوقات معنا 🫡**
 
-وهذا شرح قوانين الفارم رجاء القراءة والالتزام بها
-<#1550887906334482442>
+---
 
-هذي اخبار سيرفرنا <#1533463982478856334>
+📌 **قوانين السيرفر الأساسية:** 
+> 🛑 الرجاء قراءتها والالتزام بها تاماً: <#1533463893890957474>
 
-ومن هنا تذكره توثيق البنات اي تلاعب في التوثيق باند
-『 <#1534515466733883392> 』
+📜 **قوانين الفارم:** 
+> للشرح الكامل والتفصيلي: <#1550887906334482442>
 
-ومن هنا رومات الرانك <#1534957492575010826>
+📢 **أخبار السيرفر:** 
+> تابع كل جديد من هنا: <#1533463982478856334>
 
-ومن هنا شرح دخول الروم
-<#1535922457536372786>
+🌸 **توثيق البنات:** 
+> 『 <#1534515466733883392> 』 *(تحذير: أي تلاعب يعرضك للباند فوراً)*
 
-واي سؤال او شكوى او شيء افتح تذكرة والاداريين مايقصرون معك باذن الله <#1533464055325528168>"""
+🏆 **رومات الرانك:** 
+> للانضمام والمنافسة: <#1534957492575010826>
+
+🎧 **شرح دخول الروم:** 
+> الخطوات بالتفصيل: <#1535922457536372786>
+
+🛠️ **الدعم الفني والمساعدة:** 
+> لأي سؤال أو استفسار، افتح تذكرة والإدارة ما تقصر معك: <#1533464055325528168>"""
 
         file = discord.File(temp_filename)
         embed = discord.Embed(
-            title="🎉 مرحباً بك في السيرفر!",
+            title="🎉 أهلاً بك في Farm of Legends!",
             description=welcome_description,
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(46, 204, 113)
         )
         embed.set_image(url=f"attachment://{temp_filename}")
-        embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends")
+        embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends Bot", icon_url=bot.user.display_avatar.url)
 
         await channel.send(embed=embed, file=file)
         
         if interaction:
-            await interaction.followup.send("تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True)
+            await interaction.followup.send("تم ارسال رسالة التجربة بنجاح إلى الروم المخصص! ✅", ephemeral=True)
 
     except Exception as e:
         print(f"خطأ تفصيلي في معالجة الصورة: {e}")
