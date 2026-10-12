@@ -4,7 +4,7 @@ from io import BytesIO
 import discord
 from discord import app_commands
 from discord.ext import commands
-from PIL import Image
+from PIL import Image, ImageDraw
 import requests
 
 intents = discord.Intents.default()
@@ -61,9 +61,9 @@ async def send_dynamic_welcome(channel, member):
             
         avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
-        # 3. قص الصورة على شكل دائرة متناسقة
+        # 3. قص الصورة على شكل دائرة متناسقة (تم التصحيح هنا إلى ImageDraw)
         mask = Image.new("L", avatar_img.size, 0)
-        draw_mask = Image.Draw(mask)
+        draw_mask = ImageDraw.Draw(mask)
         draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
 
         output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
