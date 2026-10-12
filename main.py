@@ -14,7 +14,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
-# الرابط المباشر الصحيح والنظيف لصورة FARM OF LEGENDS
 BASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1533469148493906002/1559337458922033172/35B0B5E7-6C79-41FD-8994-0CB0D27C63AA.png?ex=6aceb5ad&is=6acd642d&hm=527bfe602cce82367f7364f9cecdbfe732ac5c011f369a952b8fcb29dd7be67e&"
 
 @bot.event
@@ -35,19 +34,19 @@ async def on_member_join(member):
 @bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والدائرة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
+    # الرد الفوري لمنع انتهاء المهلة وخطأ Unknown interaction
+    await interaction.response.defer(thinking=True, ephemeral=True)
     
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel is None:
         channel = interaction.channel
         
-    await send_dynamic_welcome(channel, interaction.user)
-    await interaction.followup.send("تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True)
+    await send_dynamic_welcome(channel, interaction.user, interaction)
 
-async def send_dynamic_welcome(channel, member):
+async def send_dynamic_welcome(channel, member, interaction=None):
     temp_filename = f"welcome_{member.id}.png"
     try:
-        # 1. تحميل الصورة الأساسية من الرابط المباشر
+        # 1. تحميل الصورة الأساسية
         base_response = requests.get(BASE_IMAGE_URL, timeout=15)
         if base_response.status_code != 200:
             raise Exception("فشل تحميل الصورة الأساسية")
@@ -61,7 +60,7 @@ async def send_dynamic_welcome(channel, member):
             
         avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
 
-        # 3. قص الصورة على شكل دائرة متناسقة (تم التصحيح هنا إلى ImageDraw)
+        # 3. قص الصورة على شكل دائرة متناسقة
         mask = Image.new("L", avatar_img.size, 0)
         draw_mask = ImageDraw.Draw(mask)
         draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
@@ -108,11 +107,20 @@ async def send_dynamic_welcome(channel, member):
         embed.set_image(url=f"attachment://{temp_filename}")
         embed.set_footer(text=f"رقم العضو: {member.id} | Farm of Legends")
 
+        # إرسال الرسالة للروم المحدد
         await channel.send(embed=embed, file=file)
+        
+        # إذا تم استدعاء الأمر عبر تفاعل (Slash Command)، أكمل الرد الخاص به
+        if interaction:
+            await interaction.followup.send("تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True)
 
     except Exception as e:
         print(f"خطأ تفصيلي في معالجة الصورة: {e}")
-        await channel.send(f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})")
+        error_msg = f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})"
+        if interaction:
+            await interaction.followup.send(error_msg, ephemeral=True)
+        else:
+            await channel.send(error_msg)
         
     finally:
         if os.path.exists(temp_filename):
