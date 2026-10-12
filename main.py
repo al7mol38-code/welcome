@@ -14,10 +14,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
-
-# سنستخدم طريقة بديلة ومضمونة: إرسال التصميم كصورة أساسية في اليمين/اليسار، 
-# وبروفايل العضو كصورة مصغرة دائرية أو إرفاقها بشكل سلس يمنع حدوث خطأ التحميل.
-# ضع هنا رابط مباشر ثابت أو دعنا نجعل البوت يرسل التصميم كصورة Embed نظيفة:
+# الرابط المباشر الثابت للصورة من قيت هب
+BASE_IMAGE_URL = "https://raw.githubusercontent.com/al7mol38-code/welcome/main/background.png"
 
 
 @bot.event
@@ -34,10 +32,10 @@ async def on_ready():
 async def on_member_join(member):
   channel = bot.get_channel(WELCOME_CHANNEL_ID)
   if channel is not None:
-    await send_clean_welcome(channel, member)
+    await send_dynamic_welcome(channel, member)
 
 
-@bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب")
+@bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والصورة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
   await interaction.response.defer(thinking=True)
@@ -46,15 +44,48 @@ async def test_welcome_slash(interaction: discord.Interaction):
   if channel is None:
     channel = interaction.channel
 
-  await send_clean_welcome(channel, interaction.user)
+  await send_dynamic_welcome(channel, interaction.user)
   await interaction.followup.send(
       "تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True
   )
 
 
-async def send_clean_welcome(channel, member):
+async def send_dynamic_welcome(channel, member):
+  temp_filename = f"welcome_{member.id}.png"
   try:
-    # النص الترحيمي المرتب والجميل
+    # 1. تحميل الصورة الأساسية من قيت هب
+    base_response = requests.get(BASE_IMAGE_URL, timeout=15)
+    if base_response.status_code != 200:
+      raise Exception("فشل تحميل الصورة الأساسية من قيت هب")
+    base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
+
+    # 2. تحميل صورة بروفايل العضو
+    avatar_url = member.display_avatar.replace(size=256, format="png").url
+    avatar_response = requests.get(avatar_url, timeout=10)
+    if avatar_response.status_code != 200:
+      raise Exception("فشل تحميل صورة بروفايل العضو")
+
+    avatar_img = Image.open(BytesIO(avatar_response.content)).convert("RGBA")
+
+    # 3. قص الصورة على شكل دائرة
+    mask = Image.new("L", avatar_img.size, 0)
+    draw_mask = Image.Draw(mask)
+    draw_mask.ellipse((0, 0) + avatar_img.size, fill=255)
+
+    output = Image.new("RGBA", avatar_img.size, (0, 0, 0, 0))
+    output.paste(avatar_img, (0, 0), mask=mask)
+
+    avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
+
+    # 4. دمج صورة العضو في الإحداثيات المحددة داخل الدائرة
+    position = (523, 120)
+    working_image = base_image.copy()
+    working_image.paste(avatar_resized, position, avatar_resized)
+
+    # 5. حفظ الصورة المؤقتة
+    working_image.save(temp_filename)
+
+    # 6. النص الترحيمي
     welcome_description = f"""حياك الله {member.mention} منور سيرفرنا🫡 welcome
 
 رجاء قراءة القوانين والالتزام بها 🛑 <#1533463893890957474>
@@ -74,27 +105,29 @@ async def send_clean_welcome(channel, member):
 
 واي سؤال او شكوى او شيء افتح تذكرة والاداريين مايقصرون معك باذن الله <#1533464055325528168>"""
 
+    file = discord.File(temp_filename)
     embed = discord.Embed(
         title="🎉 مرحباً بك في السيرفر!",
         description=welcome_description,
         color=discord.Color.blue(),
     )
+    embed.set_image(url=f"attachment://{temp_filename}")
+    embed.set_footer(text=f"رقم العضو: {member.id} | ترحيب تفاعلي")
 
-    # وضع صورة بروفايل العضو كأيقونة مصغرة (Thumbnail) بارزة وواضحة
-    embed.set_thumbnail(url=member.display_avatar.url)
-
-    # وضع صورة التصميم الخاصة بك كصورة رئيسية (Image) تظهر أسفل النص بكامل جمالها
-    embed.set_image(
-        url="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop"
-    )  # (أو يمكنك وضع أي رابط صورة ثابت ومباشر هنا، أو استبداله برابط صورتك من موقع رفع دائم)
-
-    embed.set_footer(text=f"رقم العضو: {member.id} | نورتنا بوجودك")
-
-    await channel.send(embed=embed)
+    await channel.send(embed=embed, file=file)
 
   except Exception as e:
-    print(f"خطأ في إرسال الترحيب: {e}")
-    await channel.send(f"مرحباً بك {member.mention}! نورت السيرفر 💙")
+    print(f"خطأ تفصيلي في معالجة الصورة: {e}")
+    await channel.send(
+        f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})"
+    )
+
+  finally:
+    if os.path.exists(temp_filename):
+      try:
+        os.remove(temp_filename)
+      except:
+        pass
 
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
