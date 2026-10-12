@@ -66,8 +66,8 @@ async def send_dynamic_welcome(channel, member, interaction=None):
 
         avatar_resized = output.resize((305, 305), Image.Resampling.LANCZOS)
 
-        # 4. تم ضبط الإحداثيات (X=690 ثابتة في الوسط، و Y=130 لإنزال الصورة قليلاً للأسفل)
-        position = (690, 130)
+        # 4. تم ضبط الإحداثيات (X=690 ثابتة في الوسط، و Y=160 لإنزال الصورة بشكل أكبر للأسفل)
+        position = (690, 160)
         working_image = base_image.copy()
         working_image.paste(avatar_resized, position, avatar_resized)
 
