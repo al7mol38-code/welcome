@@ -15,7 +15,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533469148493906002
 # الرابط المباشر الثابت والمستقر لصورة FARM OF LEGENDS
-BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png" # رابط مباشر دائم ومستقر لصورتك
+BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png"
 
 @bot.event
 async def on_ready():
