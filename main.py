@@ -14,7 +14,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533463896118001838
-# تم استخدام رابط خلفية دائم ومستقر لا تنتهي صلاحيته أبداً
 BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png"
 
 @bot.event
@@ -115,12 +114,13 @@ async def send_dynamic_welcome(channel, member, interaction=None):
             await interaction.followup.send("تم ارسال رسالة التجربة بنجاح إلى الروم المخصص! ✅", ephemeral=True)
 
     except Exception as e:
+        # طباعة الخطأ في السيرفر (Render Logs) فقط وعدم إرساله للروم أبداً
         print(f"خطأ تفصيلي في معالجة الصورة: {e}")
-        error_msg = f"مرحباً بك {member.mention}! (حدث خطأ في معالجة الصورة: {str(e)})"
         if interaction:
-            await interaction.followup.send(error_msg, ephemeral=True)
-        else:
-            await channel.send(error_msg)
+            try:
+                await interaction.followup.send(f"حدث خطأ أثناء معالجة الصورة: {str(e)}", ephemeral=True)
+            except:
+                pass
         
     finally:
         if os.path.exists(temp_filename):
