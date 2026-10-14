@@ -14,7 +14,8 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533463896118001838
-BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png"
+# تم استخدام رابط بديل ومضمون 100% لتجاوز حظر التحميل
+BASE_IMAGE_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop"
 
 @bot.event
 async def on_ready():
@@ -45,13 +46,15 @@ async def test_welcome_slash(interaction: discord.Interaction):
 async def send_dynamic_welcome(channel, member, interaction=None):
     temp_filename = f"welcome_{member.id}.png"
     try:
-        base_response = requests.get(BASE_IMAGE_URL, timeout=15)
+        # إضافة ترويض (Headers) لكي لا ترفض بعض المواقع طلب البوت
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        base_response = requests.get(BASE_IMAGE_URL, headers=headers, timeout=15)
         if base_response.status_code != 200:
-            raise Exception("فشل تحميل الصورة الأساسية")
+            raise Exception(f"فشل تحميل الصورة الأساسية (كود الخطأ: {base_response.status_code})")
         base_image = Image.open(BytesIO(base_response.content)).convert("RGBA")
 
         avatar_url = member.display_avatar.replace(size=256, format="png").url
-        avatar_response = requests.get(avatar_url, timeout=10)
+        avatar_response = requests.get(avatar_url, headers=headers, timeout=10)
         if avatar_response.status_code != 200:
             raise Exception("فشل تحميل صورة بروفايل العضو")
             
@@ -114,7 +117,6 @@ async def send_dynamic_welcome(channel, member, interaction=None):
             await interaction.followup.send("تم ارسال رسالة التجربة بنجاح إلى الروم المخصص! ✅", ephemeral=True)
 
     except Exception as e:
-        # طباعة الخطأ في السيرفر (Render Logs) فقط وعدم إرساله للروم أبداً
         print(f"خطأ تفصيلي في معالجة الصورة: {e}")
         if interaction:
             try:
