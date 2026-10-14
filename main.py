@@ -14,7 +14,6 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 WELCOME_CHANNEL_ID = 1533463896118001838
-# رابط صورتك المباشر والدائم 100%
 BASE_IMAGE_URL = "https://i.imgur.com/h2oeMvr.jpg"
 
 @bot.event
@@ -113,15 +112,17 @@ async def send_dynamic_welcome(channel, member, interaction=None):
         await channel.send(embed=embed, file=file)
         
         if interaction:
-            await interaction.followup.send("تم ارسال رسالة التجربة بنجاح بخلفية السيرفر الأصلية! ✅", ephemeral=True)
+            await interaction.followup.send("تم ارسال رسالة التجربة بنجاح! ✅", ephemeral=True)
 
     except Exception as e:
         print(f"خطأ تفصيلي في معالجة الصورة: {e}")
+        # إذا كان الخطأ من أمر التجربة، سيرسله لك بشكل خاص وخفي (Ephemeral) فقط
         if interaction:
             try:
-                await interaction.followup.send(f"حدث خطأ أثناء معالجة الصورة: {str(e)}", ephemeral=True)
+                await interaction.followup.send(f"⚠️ حدث خطأ أثناء معالجة الصورة: {str(e)}", ephemeral=True)
             except:
                 pass
+        # وإذا دخل عضو جديد وحصل خطأ، فلن يُرسل أي شيء للعامة أبداً وسيطبع في الكونسول بصمت
         
     finally:
         if os.path.exists(temp_filename):
