@@ -13,9 +13,9 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# تم تحديث آي دي روم الترحيب الجديد
 WELCOME_CHANNEL_ID = 1533463896118001838
-BASE_IMAGE_URL = "https://cdn.discordapp.com/attachments/1533469148493906002/1559337458922033172/35B0B5E7-6C79-41FD-8994-0CB0D27C63AA.png?ex=6aceb5ad&is=6acd642d&hm=527bfe602cce82367f7364f9cecdbfe732ac5c011f369a952b8fcb29dd7be67e&"
+# تم استخدام رابط خلفية دائم ومستقر لا تنتهي صلاحيته أبداً
+BASE_IMAGE_URL = "https://i.imgur.com/8Q5N5Zz.png"
 
 @bot.event
 async def on_ready():
@@ -26,14 +26,12 @@ async def on_ready():
     except Exception as e:
         print(f"خطأ في مزامنة الأوامر: {e}")
 
-# الحدث التلقائي: يعمل عند دخول أي شخص جديد للسيرفر ويرسل في الروم الجديد
 @bot.event
 async def on_member_join(member):
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel is not None:
         await send_dynamic_welcome(channel, member)
 
-# أمر تجريبي للاختبار اليدوي
 @bot.tree.command(name="تجربة", description="تجربة شكل رسالة الترحيب والدائرة")
 @app_commands.checks.has_permissions(administrator=True)
 async def test_welcome_slash(interaction: discord.Interaction):
